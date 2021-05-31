@@ -423,3 +423,28 @@ class Hash:
 
 ```
 
+### Refactoring with Multiple Files
+
+.
+├── __init__.py
+├── database.py
+├── hashing.py
+├── main.py
+├── models.py
+├── routers
+│   ├── __init__.py
+│   ├── blog.py
+│   └── user.py
+└── schemas.py
+
+
+
+Find the above code and we've refactored in this file structure.
+
+
+
+Main.py
+
+```
+
+```
