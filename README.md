@@ -253,7 +253,7 @@ def all(db: Session = Depends(get_db)):
     return blogs
 
 
-@app.get("/blog/{id}", status_code=status.HTTP_200_OK)
+@app.get("/blog/{id}", status_code=status.HTTP_200_OK, response_model=schemas.ShowBlog)
 def show(id, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -274,6 +274,18 @@ def destroy(id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"blog": f"blog {id} is Deleted"}
 
+
+@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
+    blogger = db.query(models.Blog).filter(models.Blog.id == id)
+    if not blogger.first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Blog not found with {id}"
+        )
+    # return request
+    blogger.update(vars(request))
+    db.commit()
+    return {"blog": f"blog {id} is Updated Successfully"}
 
 ```
 
@@ -327,4 +339,6 @@ class blog(Base):
     body = Column(String)
 
 ```
+
+#### Creating a User
 

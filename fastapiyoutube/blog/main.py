@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, status, HTTPException
 from . import schemas
 from . import models
+from .hashing import Hash
 from sqlalchemy.orm import Session
 from .database import engine, SessionLocal
 
@@ -32,7 +33,7 @@ def all(db: Session = Depends(get_db)):
     return blogs
 
 
-@app.get("/blog/{id}", status_code=status.HTTP_200_OK)
+@app.get("/blog/{id}", status_code=status.HTTP_200_OK, response_model=schemas.ShowBlog)
 def show(id, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -52,3 +53,42 @@ def destroy(id: int, db: Session = Depends(get_db)):
     db.query(models.Blog).filter(models.Blog.id == id).delete(synchronize_session=False)
     db.commit()
     return {"blog": f"blog {id} is Deleted"}
+
+
+@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
+    blogger = db.query(models.Blog).filter(models.Blog.id == id)
+    if not blogger.first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Blog not found with {id}"
+        )
+    # return request
+    blogger.update(vars(request))
+    db.commit()
+    return {"blog": f"blog {id} is Updated Successfully"}
+
+
+@app.post("/user", response_model=schemas.ShowUser)
+def user(
+    request: schemas.User,
+    db: Session = Depends(get_db),
+):
+    new_user = models.User(
+        name=request.name,
+        email=request.email,
+        password=Hash.bcrypt(request.password),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get("/user/{id}", response_model=schemas.ShowUser)
+def get_user(id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User not found with {id}"
+        )
+    return user
