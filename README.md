@@ -1,0 +1,1 @@
+[![wakatime](https://wakatime.com/badge/github/MonkiyPython/fastapilearning.svg)](https://wakatime.com/badge/github/MonkiyPython/fastapilearning)
