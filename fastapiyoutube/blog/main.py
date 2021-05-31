@@ -18,7 +18,7 @@ def get_db():
         db.close()
 
 
-@app.post("/blog", status_code=status.HTTP_201_CREATED)
+@app.post("/blog", status_code=status.HTTP_201_CREATED, tags=["Blogs"])
 def create(request: schemas.blog, db: Session = Depends(get_db)):
     new_blog = models.Blog(title=request.title, body=request.body)
     db.add(new_blog)
@@ -27,13 +27,18 @@ def create(request: schemas.blog, db: Session = Depends(get_db)):
     return new_blog
 
 
-@app.get("/blog")
+@app.get("/blog", tags=["Blogs"])
 def all(db: Session = Depends(get_db)):
     blogs = db.query(models.Blog).all()
     return blogs
 
 
-@app.get("/blog/{id}", status_code=status.HTTP_200_OK, response_model=schemas.ShowBlog)
+@app.get(
+    "/blog/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=schemas.ShowBlog,
+    tags=["Blogs"],
+)
 def show(id, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -43,7 +48,7 @@ def show(id, db: Session = Depends(get_db)):
     return blog
 
 
-@app.delete("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+@app.delete("/blog/{id}", status_code=status.HTTP_202_ACCEPTED, tags=["Blogs"])
 def destroy(id: int, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -55,7 +60,7 @@ def destroy(id: int, db: Session = Depends(get_db)):
     return {"blog": f"blog {id} is Deleted"}
 
 
-@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED, tags=["Blogs"])
 def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
     blogger = db.query(models.Blog).filter(models.Blog.id == id)
     if not blogger.first():
@@ -68,7 +73,7 @@ def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
     return {"blog": f"blog {id} is Updated Successfully"}
 
 
-@app.post("/user", response_model=schemas.ShowUser)
+@app.post("/user", response_model=schemas.ShowUser, tags=["Users"])
 def user(
     request: schemas.User,
     db: Session = Depends(get_db),
@@ -84,7 +89,7 @@ def user(
     return new_user
 
 
-@app.get("/user/{id}", response_model=schemas.ShowUser)
+@app.get("/user/{id}", response_model=schemas.ShowUser, tags=["Users"])
 def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == id).first()
     if not user:
