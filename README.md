@@ -222,6 +222,7 @@ First we Need to Create a Simple RUN File
 from fastapi import FastAPI, Depends, status, HTTPException
 from . import schemas
 from . import models
+from .hashing import Hash
 from sqlalchemy.orm import Session
 from .database import engine, SessionLocal
 
@@ -238,22 +239,27 @@ def get_db():
         db.close()
 
 
-@app.post("/blog", status_code=status.HTTP_201_CREATED)
-def create(request: schemas.blog, db: Session = Depends(get_db)):
-    new_blog = models.Blog(title=request.title, body=request.body)
+@app.post("/blog", status_code=status.HTTP_201_CREATED, tags=["Blogs"])
+def create(request: schemas.blog, db: Session = Depends(get_db), user_id: int = 1):
+    new_blog = models.Blog(title=request.title, body=request.body, user_id=user_id)
     db.add(new_blog)
     db.commit()
     db.refresh(new_blog)
     return new_blog
 
 
-@app.get("/blog")
+@app.get("/blog", tags=["Blogs"])
 def all(db: Session = Depends(get_db)):
     blogs = db.query(models.Blog).all()
     return blogs
 
 
-@app.get("/blog/{id}", status_code=status.HTTP_200_OK, response_model=schemas.ShowBlog)
+@app.get(
+    "/blog/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=schemas.ShowBlog,
+    tags=["Blogs"],
+)
 def show(id, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -263,7 +269,7 @@ def show(id, db: Session = Depends(get_db)):
     return blog
 
 
-@app.delete("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+@app.delete("/blog/{id}", status_code=status.HTTP_202_ACCEPTED, tags=["Blogs"])
 def destroy(id: int, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -275,7 +281,7 @@ def destroy(id: int, db: Session = Depends(get_db)):
     return {"blog": f"blog {id} is Deleted"}
 
 
-@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED)
+@app.put("/blog/{id}", status_code=status.HTTP_202_ACCEPTED, tags=["Blogs"])
 def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
     blogger = db.query(models.Blog).filter(models.Blog.id == id)
     if not blogger.first():
@@ -286,6 +292,32 @@ def update(id: int, request: schemas.blog, db: Session = Depends(get_db)):
     blogger.update(vars(request))
     db.commit()
     return {"blog": f"blog {id} is Updated Successfully"}
+
+
+@app.post("/user", response_model=schemas.ShowUser, tags=["Users"])
+def user(
+    request: schemas.User,
+    db: Session = Depends(get_db),
+):
+    new_user = models.User(
+        name=request.name,
+        email=request.email,
+        password=Hash.bcrypt(request.password),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get("/user/{id}", response_model=schemas.ShowUser, tags=["Users"])
+def get_user(id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User not found with {id}"
+        )
+    return user
 
 ```
 
@@ -298,6 +330,28 @@ from pydantic import BaseModel
 class blog(BaseModel):
     title: str
     body: str
+
+
+class ShowBlog(BaseModel):
+    title: str
+    body: str
+
+    class Config:
+        orm_mode = True
+
+
+class User(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class ShowUser(BaseModel):
+    name: str
+    email: str
+
+    class Config:
+        orm_mode = True
 
 ```
 
@@ -328,17 +382,44 @@ Base = declarative_base()
 
 ```python
 from .database import Base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 
 
-class blog(Base):
+class Blog(Base):
     __tablename__ = "blogs"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     body = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    created_by = relationship("User", back_populates="blogs")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    email = Column(String)
+    password = Column(String)
+
+    blogs = relationship("Blog", back_populates="created_by")
 
 ```
 
-#### Creating a User
+5. Create a Hashing File for Password
+
+```python
+from passlib.context import CryptContext
+
+pwd_cxt = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class Hash:
+    def bcrypt(password: str):
+        return pwd_cxt.hash(password)
+
+```
 
