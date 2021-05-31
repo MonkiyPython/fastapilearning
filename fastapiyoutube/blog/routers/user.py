@@ -5,10 +5,13 @@ from .. import models
 from sqlalchemy.orm import Session
 from ..hashing import Hash
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/user",
+    tags=["Users"],
+)
 
 
-@router.post("/user", response_model=schemas.ShowUser, tags=["Users"])
+@router.post("/", response_model=schemas.ShowUser)
 def user(
     request: schemas.User,
     db: Session = Depends(get_db),
@@ -24,7 +27,7 @@ def user(
     return new_user
 
 
-@router.get("/user/{id}", response_model=schemas.ShowUser, tags=["Users"])
+@router.get("/{id}", response_model=schemas.ShowUser)
 def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == id).first()
     if not user:
