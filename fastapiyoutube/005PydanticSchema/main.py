@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from typing import Optional
 from pydantic import BaseModel
-import uvicorn  # noqa;
 
 app = FastAPI()
 
@@ -29,19 +28,12 @@ def comments(id: int, limit: int = 10):
     return {"data": {"1", "2"}}
 
 
-# While Creating a Class we need to consider the Parameters with Type
 class Blog(BaseModel):
     title: str
     body: str
     published_at: Optional[bool]
 
 
-# If I need to send Request Body Always need to create with parameters
-# So We're extending Base Class from Pydantic
 @app.post("/blog/")
 def create_blog(blog: Blog):
     return {"data": f"Blog is Created with title as {blog.title}"}
-
-
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="127.0.0.1", port=8000)
